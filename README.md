@@ -1,6 +1,9 @@
 # Draft Killer
 
-A sports betting analysis tool that provides comprehensive risk assessment, alternatives, and suggestions for parlays.
+A sports analysis tool that provides comprehensive risk assessment, alternatives, and suggestions for parlays.
+
+![killr-2](https://github.com/user-attachments/assets/0f37bfa2-8e96-463c-8c59-998ada4062b4)
+
 
 ## Overview
 
@@ -198,32 +201,5 @@ All documentation is organized in the `docs/` folder:
 - **[Implementation Outline](docs/IMPLEMENTATION_OUTLINE.md)** - Complete project roadmap
 - **[Implementation Status](docs/IMPLEMENTATION_STATUS.md)** - Current progress
 - **[Sportsbook Research](docs/SPORTSBOOK_RESEARCH_COMPLETE.md)** - API research findings
-
-## Contributing
-
-This is a personal project following a structured implementation plan. See [docs/IMPLEMENTATION_OUTLINE.md](docs/IMPLEMENTATION_OUTLINE.md) for the complete roadmap.
-
-## Security Considerations
-
-- Passwords hashed with bcrypt
-- JWT tokens for authentication
-- CORS properly configured
-- Input validation with Pydantic
-- Rate limiting on sensitive endpoints
-- Environment variables for secrets
-
-## Monitoring
-
-- Application errors: TBD (Sentry or similar)
-- LLM monitoring: W&B Weave tracing
-- Performance: Vercel Analytics
-
-## License
-
-Private project - All rights reserved
-
-## Support
-
-For questions or issues, see the development notes in `DEVELOPMENT_NOTES.md`
 
 
