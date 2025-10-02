@@ -1,0 +1,5 @@
+
+- better integration with ODDS, get actual historical data piped in
+- configurable agent tools 
+- figure out the w&b inference stuff, have an easy switch between openai and w&b
+- admin view for exact postgres state for debugging
