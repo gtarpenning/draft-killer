@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: draft_killer_db
+    environment:
+      POSTGRES_DB: draft_killer
+      POSTGRES_USER: draft_killer
+      POSTGRES_PASSWORD: draft_killer_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U draft_killer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+

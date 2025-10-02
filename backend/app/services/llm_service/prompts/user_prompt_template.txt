@@ -1,0 +1,13 @@
+Please analyze this parlay:
+
+{parlay_description}
+
+{odds_data_section}
+
+Provide a comprehensive analysis including:
+1. Risk assessment for each leg (use current odds to calculate implied probabilities)
+2. Overall parlay probability and expected value
+3. Alternative betting suggestions based on current market
+4. Potential outcomes and scenarios
+5. Recommendations for improvement
+

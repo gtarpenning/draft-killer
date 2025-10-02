@@ -1,0 +1,284 @@
+.container {
+  padding: 2rem;
+  max-width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.refreshButton {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refreshButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.content {
+  display: flex;
+  gap: 1.5rem;
+  height: calc(100vh - 8rem);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.tableList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tableButton {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.tableButton:hover {
+  background: #e9ecef;
+  border-color: #667eea;
+}
+
+.tableButton.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.tableName {
+  font-weight: 600;
+}
+
+.rowCount {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.tableButton.active .rowCount {
+  opacity: 0.9;
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.tableHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+  font-family: 'Courier New', monospace;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pageButton {
+  padding: 0.5rem 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: #5568d3;
+  transform: translateY(-1px);
+}
+
+.pageButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pageInfo {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Table */
+.tableContainer {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.dataTable thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dataTable th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+}
+
+.dataTable tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.15s;
+}
+
+.dataTable tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.dataTable td {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+}
+
+.rowNumber {
+  width: 50px;
+  text-align: center;
+  color: #999;
+  font-weight: 600;
+  background: #f8f9fa;
+}
+
+.dataCell {
+  max-width: 400px;
+}
+
+.cellContent {
+  max-height: 150px;
+  overflow: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* States */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.error {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: #856404;
+}
+
+.error h2 {
+  margin: 0 0 0.5rem 0;
+  color: #856404;
+}
+
+.retryButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #ffc107;
+  color: #856404;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retryButton:hover {
+  background: #e0a800;
+}
+
+.emptyState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+.emptyState p {
+  margin: 0;
+}
+
