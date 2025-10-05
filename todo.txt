@@ -1,5 +1,16 @@
 
-- better integration with ODDS, get actual historical data piped in
-- configurable agent tools 
 - figure out the w&b inference stuff, have an easy switch between openai and w&b
 - admin view for exact postgres state for debugging
+
+## CHAT CONTEXT AUDIT FINDINGS (2025-01-15)
+
+### CRITICAL ISSUES:
+1. **Frontend Context Loss** - useChat hook doesn't load existing conversation history, context lost on refresh
+2. **Backend Context Issues** - Regular `/stream` endpoint ignores conversation history, only `/agent-stream` works correctly  
+3. **API Confusion** - Two endpoints but only agent one uses context properly
+4. **Context Flow Problems** - Messages saved to DB but LLM service has no conversation history support
+
+### FIXES NEEDED:
+1. **Frontend** - Load conversation history when conversation_id provided, persist across refreshes
+2. **Backend** - Add conversation history support to LLM model, pass context to query extraction
+3. **Context Continuity** - Ensure all conversation messages included in context, implement proper context window management

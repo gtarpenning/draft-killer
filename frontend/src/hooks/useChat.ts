@@ -22,9 +22,14 @@ export function useChat(options: UseChatOptions = {}) {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(
     options.conversationId
   );
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   
   async function sendMessage(content: string) {
     if (!content.trim() || isStreaming) return;
+    
+    // Create new abort controller for this request
+    const controller = new AbortController();
+    setAbortController(controller);
     
     // Add user message immediately
     const userMessage: Message = {
@@ -60,6 +65,7 @@ export function useChat(options: UseChatOptions = {}) {
       for await (const chunk of streamChat({
         message: messageWithContext,
         conversation_id: currentConversationId,
+        signal: controller.signal,
       })) {
         if (chunk.error) {
           throw new Error(chunk.error);
@@ -106,6 +112,14 @@ export function useChat(options: UseChatOptions = {}) {
     } catch (error) {
       console.error('Error streaming message:', error);
       
+      // Check if this was an abort (cancellation)
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Remove the incomplete assistant message
+        setMessages(prev => prev.filter(msg => msg.id !== assistantMessageId));
+        // Don't add error message for cancellation
+        return;
+      }
+      
       // Remove the incomplete assistant message
       setMessages(prev => prev.filter(msg => msg.id !== assistantMessageId));
       
@@ -125,6 +139,13 @@ export function useChat(options: UseChatOptions = {}) {
       }
     } finally {
       setIsStreaming(false);
+      setAbortController(null);
+    }
+  }
+  
+  function cancelMessage() {
+    if (abortController) {
+      abortController.abort();
     }
   }
   
@@ -138,6 +159,7 @@ export function useChat(options: UseChatOptions = {}) {
     isStreaming,
     conversationId: currentConversationId,
     sendMessage,
+    cancelMessage,
     clearMessages,
   };
 }

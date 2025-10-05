@@ -17,7 +17,7 @@ import styles from './ChatInterface.module.css';
 
 export function ChatInterface() {
   const [selectedSport, setSelectedSport] = useState<Sport>(DEFAULT_SPORT);
-  const { messages, isStreaming, sendMessage } = useChat({ sport: selectedSport.id });
+  const { messages, isStreaming, sendMessage, cancelMessage } = useChat({ sport: selectedSport.id });
   const { user, logout } = useAuth();
   const router = useRouter();
   
@@ -57,6 +57,7 @@ export function ChatInterface() {
       
       <MessageInput
         onSend={sendMessage}
+        onCancel={cancelMessage}
         disabled={isStreaming}
       />
     </div>

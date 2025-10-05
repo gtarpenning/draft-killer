@@ -282,6 +282,62 @@ class OddsService:
 
         return best_odds_events
 
+    @weave.op()
+    def get_historical_odds(
+        self,
+        sport_key: str,
+        date: str,
+        markets: list[str] | None = None,
+        bookmakers: list[str] | None = None
+    ) -> list[dict[str, Any]]:
+        """Get historical odds for a sport on a specific date."""
+        if markets is None:
+            markets = self.DEFAULT_MARKETS
+        if bookmakers is None:
+            bookmakers = self.US_BOOKMAKERS
+
+        return self.client.get_historical_odds(
+            sport_key=sport_key,
+            date=date,
+            markets=markets,
+            bookmakers=bookmakers
+        )
+
+    @weave.op()
+    def get_historical_events(
+        self,
+        sport_key: str,
+        date: str
+    ) -> list[dict[str, Any]]:
+        """Get historical events for a sport on a specific date."""
+        return self.client.get_historical_events(
+            sport_key=sport_key,
+            date=date
+        )
+
+    @weave.op()
+    def get_historical_event_odds(
+        self,
+        sport_key: str,
+        event_id: str,
+        date: str,
+        markets: list[str] | None = None,
+        bookmakers: list[str] | None = None
+    ) -> dict[str, Any]:
+        """Get historical odds for a specific event on a specific date."""
+        if markets is None:
+            markets = self.DEFAULT_MARKETS
+        if bookmakers is None:
+            bookmakers = self.US_BOOKMAKERS
+
+        return self.client.get_historical_event_odds(
+            sport_key=sport_key,
+            event_id=event_id,
+            date=date,
+            markets=markets,
+            bookmakers=bookmakers
+        )
+
     def get_usage_info(self) -> dict[str, Any]:
         """Get current API usage and cache information."""
         return self.client.get_usage_info()

@@ -16,12 +16,13 @@ from app.core.weave_config import get_weave_op_decorator
 console = Console()
 
 
-def get_odds_tools(odds_service) -> list[FunctionTool]:
+def get_odds_tools(odds_service, dev_mode: bool = False) -> list[FunctionTool]:
     """
     Get all available tools for odds data fetching.
 
     Args:
         odds_service: OddsService instance for API calls
+        dev_mode: If True, tool call errors will be raised instead of caught
 
     Returns:
         List of FunctionTool objects that can be used by the agent
@@ -30,14 +31,17 @@ def get_odds_tools(odds_service) -> list[FunctionTool]:
         return []
 
     return [
-        _create_get_odds_tool(odds_service),
-        _create_find_team_odds_tool(odds_service),
-        _create_get_suggestions_tool(odds_service),
-        _create_get_sports_tool(odds_service),
+        _create_get_odds_tool(odds_service, dev_mode),
+        _create_find_team_odds_tool(odds_service, dev_mode),
+        _create_get_suggestions_tool(odds_service, dev_mode),
+        _create_get_sports_tool(odds_service, dev_mode),
+        _create_get_historical_odds_tool(odds_service, dev_mode),
+        _create_get_historical_events_tool(odds_service, dev_mode),
+        _create_get_historical_event_odds_tool(odds_service, dev_mode),
     ]
 
 
-def _create_get_odds_tool(odds_service) -> FunctionTool:
+def _create_get_odds_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
     """Create tool for getting odds for a specific sport."""
 
     @get_weave_op_decorator()
@@ -112,6 +116,8 @@ def _create_get_odds_tool(odds_service) -> FunctionTool:
             return json.dumps(result)
 
         except Exception as e:
+            if dev_mode:
+                raise e
             result = {
                 "success": False,
                 "error": str(e),
@@ -125,7 +131,7 @@ def _create_get_odds_tool(odds_service) -> FunctionTool:
         "properties": {
             "sport_key": {
                 "type": "string",
-                "description": "Sport identifier (e.g., 'americanfootball_nfl', 'basketball_nba')"
+                "description": "Sport identifier. MUST be one of: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys."
             },
             "markets": {
                 "type": "string",
@@ -143,13 +149,13 @@ def _create_get_odds_tool(odds_service) -> FunctionTool:
 
     return FunctionTool(
         name="get_odds_for_sport",
-        description="Get current odds for all upcoming games in a specific sport. Use this when users ask about odds for a sport like NFL, NBA, etc.",
+        description="Get current odds for all upcoming games in a specific sport. Use this when users ask about odds for a sport like NFL, NBA, etc. VALID SPORT KEYS: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys like 'basketball_nba_championship_winner'.",
         params_json_schema=params_schema,
         on_invoke_tool=get_odds_for_sport
     )
 
 
-def _create_find_team_odds_tool(odds_service) -> FunctionTool:
+def _create_find_team_odds_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
     """Create tool for finding odds for a specific team."""
 
     @get_weave_op_decorator()
@@ -225,6 +231,8 @@ def _create_find_team_odds_tool(odds_service) -> FunctionTool:
             return json.dumps(result)
 
         except Exception as e:
+            if dev_mode:
+                raise e
             result = {
                 "success": False,
                 "error": str(e),
@@ -238,7 +246,7 @@ def _create_find_team_odds_tool(odds_service) -> FunctionTool:
         "properties": {
             "sport_key": {
                 "type": "string",
-                "description": "Sport identifier (e.g., 'americanfootball_nfl')"
+                "description": "Sport identifier. MUST be one of: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys."
             },
             "team_name": {
                 "type": "string",
@@ -250,13 +258,13 @@ def _create_find_team_odds_tool(odds_service) -> FunctionTool:
 
     return FunctionTool(
         name="find_team_odds",
-        description="Find odds for a specific team's upcoming game. Use this when users mention a specific team.",
+        description="Find odds for a specific team's upcoming game. Use this when users mention a specific team. VALID SPORT KEYS: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys like 'basketball_nba_championship_winner'.",
         params_json_schema=params_schema,
         on_invoke_tool=find_team_odds
     )
 
 
-def _create_get_suggestions_tool(odds_service) -> FunctionTool:
+def _create_get_suggestions_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
     """Create tool for getting parlay suggestions."""
 
     @get_weave_op_decorator()
@@ -303,6 +311,8 @@ def _create_get_suggestions_tool(odds_service) -> FunctionTool:
             return json.dumps(result)
 
         except Exception as e:
+            if dev_mode:
+                raise e
             result = {
                 "success": False,
                 "error": str(e),
@@ -316,7 +326,7 @@ def _create_get_suggestions_tool(odds_service) -> FunctionTool:
         "properties": {
             "sport_key": {
                 "type": "string",
-                "description": "Sport identifier (default: 'americanfootball_nfl')",
+                "description": "Sport identifier. MUST be one of: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys.",
                 "default": "americanfootball_nfl"
             },
             "num_legs": {
@@ -336,7 +346,7 @@ def _create_get_suggestions_tool(odds_service) -> FunctionTool:
     )
 
 
-def _create_get_sports_tool(odds_service) -> FunctionTool:
+def _create_get_sports_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
     """Create tool for getting available sports."""
 
     @get_weave_op_decorator()
@@ -370,6 +380,8 @@ def _create_get_sports_tool(odds_service) -> FunctionTool:
             return json.dumps(result)
 
         except Exception as e:
+            if dev_mode:
+                raise e
             result = {
                 "success": False,
                 "error": str(e),
@@ -389,4 +401,336 @@ def _create_get_sports_tool(odds_service) -> FunctionTool:
         description="Get list of available sports for betting. Use this when users ask what sports are available or want to see options.",
         params_json_schema=params_schema,
         on_invoke_tool=get_available_sports
+    )
+
+
+def _create_get_historical_odds_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
+    """Create tool for getting historical odds for a sport."""
+
+    @get_weave_op_decorator()
+    async def get_historical_odds(context: ToolContext, arguments: str) -> str:
+        """
+        Get historical odds for a sport on a specific date.
+        """
+        try:
+            # Parse arguments
+            args = json.loads(arguments)
+            sport_key = args.get("sport_key", "")
+            date = args.get("date", "")
+            markets = args.get("markets")
+            bookmakers = args.get("bookmakers")
+
+            markets_list = markets.split(',') if markets else None
+            bookmakers_list = bookmakers.split(',') if bookmakers else None
+
+            # Call the historical odds method from the client
+            events_data = odds_service.client.get_historical_odds(
+                sport_key=sport_key,
+                date=date,
+                markets=markets_list,
+                bookmakers=bookmakers_list
+            )
+
+            # Convert to the same format as current odds
+            games = []
+            for event_data in events_data:
+                game_dict = {
+                    "id": event_data.get("id"),
+                    "sport_key": event_data.get("sport_key"),
+                    "commence_time": event_data.get("commence_time"),
+                    "home_team": event_data.get("home_team"),
+                    "away_team": event_data.get("away_team"),
+                    "bookmakers": []
+                }
+
+                for bookmaker_data in event_data.get("bookmakers", []):
+                    bookmaker_dict = {
+                        "key": bookmaker_data.get("key"),
+                        "title": bookmaker_data.get("title"),
+                        "last_update": bookmaker_data.get("last_update"),
+                        "markets": []
+                    }
+
+                    for market_data in bookmaker_data.get("markets", []):
+                        market_dict = {
+                            "key": market_data.get("key"),
+                            "last_update": market_data.get("last_update"),
+                            "outcomes": [
+                                {
+                                    "name": outcome.get("name"),
+                                    "price": outcome.get("price"),
+                                    "point": outcome.get("point"),
+                                    "description": outcome.get("description")
+                                }
+                                for outcome in market_data.get("outcomes", [])
+                            ]
+                        }
+                        bookmaker_dict["markets"].append(market_dict)
+
+                    game_dict["bookmakers"].append(bookmaker_dict)
+
+                games.append(game_dict)
+
+            result = {
+                "success": True,
+                "sport": sport_key,
+                "date": date,
+                "games_count": len(games),
+                "games": games[:5],  # Limit to first 5 games for response size
+                "message": f"Found {len(games)} historical games for {sport_key} on {date}"
+            }
+
+            return json.dumps(result)
+
+        except Exception as e:
+            if dev_mode:
+                raise e
+            result = {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to fetch historical odds for {sport_key}"
+            }
+            return json.dumps(result)
+
+    # Define the JSON schema for the tool parameters
+    params_schema = {
+        "type": "object",
+        "properties": {
+            "sport_key": {
+                "type": "string",
+                "description": "Sport identifier. MUST be one of: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys."
+            },
+            "date": {
+                "type": "string",
+                "description": "Date in ISO format (e.g., '2023-11-29T22:42:00Z') to get historical odds for"
+            },
+            "markets": {
+                "type": "string",
+                "description": "Comma-separated markets (e.g., 'h2h,spreads,totals')",
+                "default": None
+            },
+            "bookmakers": {
+                "type": "string",
+                "description": "Comma-separated bookmakers (optional)",
+                "default": None
+            }
+        },
+        "required": ["sport_key", "date"]
+    }
+
+    return FunctionTool(
+        name="get_historical_odds",
+        description="Get historical odds for a sport on a specific date. Use this when users ask about past odds, historical data, or want to analyze odds from a previous date. VALID SPORT KEYS: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys.",
+        params_json_schema=params_schema,
+        on_invoke_tool=get_historical_odds
+    )
+
+
+def _create_get_historical_events_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
+    """Create tool for getting historical events for a sport."""
+
+    @get_weave_op_decorator()
+    async def get_historical_events(context: ToolContext, arguments: str) -> str:
+        """
+        Get historical events for a sport on a specific date.
+        """
+        try:
+            # Parse arguments
+            args = json.loads(arguments)
+            sport_key = args.get("sport_key", "")
+            date = args.get("date", "")
+
+            # Call the historical events method from the client
+            events_data = odds_service.client.get_historical_events(
+                sport_key=sport_key,
+                date=date
+            )
+
+            # Convert to a simple format
+            games = []
+            for event_data in events_data:
+                game_dict = {
+                    "id": event_data.get("id"),
+                    "sport_key": event_data.get("sport_key"),
+                    "commence_time": event_data.get("commence_time"),
+                    "home_team": event_data.get("home_team"),
+                    "away_team": event_data.get("away_team")
+                }
+                games.append(game_dict)
+
+            result = {
+                "success": True,
+                "sport": sport_key,
+                "date": date,
+                "games_count": len(games),
+                "games": games,
+                "message": f"Found {len(games)} historical events for {sport_key} on {date}"
+            }
+
+            return json.dumps(result)
+
+        except Exception as e:
+            if dev_mode:
+                raise e
+            result = {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to fetch historical events for {sport_key}"
+            }
+            return json.dumps(result)
+
+    # Define the JSON schema for the tool parameters
+    params_schema = {
+        "type": "object",
+        "properties": {
+            "sport_key": {
+                "type": "string",
+                "description": "Sport identifier. MUST be one of: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys."
+            },
+            "date": {
+                "type": "string",
+                "description": "Date in ISO format (e.g., '2023-11-29T22:42:00Z') to get historical events for"
+            }
+        },
+        "required": ["sport_key", "date"]
+    }
+
+    return FunctionTool(
+        name="get_historical_events",
+        description="Get historical events for a sport on a specific date. Use this when users ask about past games, historical events, or want to see what games happened on a specific date. VALID SPORT KEYS: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys.",
+        params_json_schema=params_schema,
+        on_invoke_tool=get_historical_events
+    )
+
+
+def _create_get_historical_event_odds_tool(odds_service, dev_mode: bool = False) -> FunctionTool:
+    """Create tool for getting historical odds for a specific event."""
+
+    @get_weave_op_decorator()
+    async def get_historical_event_odds(context: ToolContext, arguments: str) -> str:
+        """
+        Get historical odds for a specific event on a specific date.
+        """
+        try:
+            # Parse arguments
+            args = json.loads(arguments)
+            sport_key = args.get("sport_key", "")
+            event_id = args.get("event_id", "")
+            date = args.get("date", "")
+            markets = args.get("markets")
+            bookmakers = args.get("bookmakers")
+
+            markets_list = markets.split(',') if markets else None
+            bookmakers_list = bookmakers.split(',') if bookmakers else None
+
+            # Call the historical event odds method from the client
+            event_data = odds_service.client.get_historical_event_odds(
+                sport_key=sport_key,
+                event_id=event_id,
+                date=date,
+                markets=markets_list,
+                bookmakers=bookmakers_list
+            )
+
+            # The response includes timestamp info and data
+            timestamp_info = {
+                "timestamp": event_data.get("timestamp"),
+                "previous_timestamp": event_data.get("previous_timestamp"),
+                "next_timestamp": event_data.get("next_timestamp")
+            }
+
+            data = event_data.get("data", {})
+            game_dict = {
+                "id": data.get("id"),
+                "sport_key": data.get("sport_key"),
+                "sport_title": data.get("sport_title"),
+                "commence_time": data.get("commence_time"),
+                "home_team": data.get("home_team"),
+                "away_team": data.get("away_team"),
+                "bookmakers": []
+            }
+
+            for bookmaker_data in data.get("bookmakers", []):
+                bookmaker_dict = {
+                    "key": bookmaker_data.get("key"),
+                    "title": bookmaker_data.get("title"),
+                    "last_update": bookmaker_data.get("last_update"),
+                    "markets": []
+                }
+
+                for market_data in bookmaker_data.get("markets", []):
+                    market_dict = {
+                        "key": market_data.get("key"),
+                        "last_update": market_data.get("last_update"),
+                        "outcomes": [
+                            {
+                                "name": outcome.get("name"),
+                                "price": outcome.get("price"),
+                                "point": outcome.get("point"),
+                                "description": outcome.get("description")
+                            }
+                            for outcome in market_data.get("outcomes", [])
+                        ]
+                    }
+                    bookmaker_dict["markets"].append(market_dict)
+
+                game_dict["bookmakers"].append(bookmaker_dict)
+
+            result = {
+                "success": True,
+                "sport": sport_key,
+                "event_id": event_id,
+                "date": date,
+                "timestamp_info": timestamp_info,
+                "game": game_dict,
+                "message": f"Found historical odds for event {event_id} on {date}"
+            }
+
+            return json.dumps(result)
+
+        except Exception as e:
+            if dev_mode:
+                raise e
+            result = {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to fetch historical odds for event {event_id}"
+            }
+            return json.dumps(result)
+
+    # Define the JSON schema for the tool parameters
+    params_schema = {
+        "type": "object",
+        "properties": {
+            "sport_key": {
+                "type": "string",
+                "description": "Sport identifier. MUST be one of: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys."
+            },
+            "event_id": {
+                "type": "string",
+                "description": "Event identifier for the specific game"
+            },
+            "date": {
+                "type": "string",
+                "description": "Date in ISO format (e.g., '2023-11-29T22:42:00Z') to get historical odds for"
+            },
+            "markets": {
+                "type": "string",
+                "description": "Comma-separated markets (e.g., 'h2h,spreads,totals')",
+                "default": None
+            },
+            "bookmakers": {
+                "type": "string",
+                "description": "Comma-separated bookmakers (optional)",
+                "default": None
+            }
+        },
+        "required": ["sport_key", "event_id", "date"]
+    }
+
+    return FunctionTool(
+        name="get_historical_event_odds",
+        description="Get historical odds for a specific event on a specific date. Use this when users ask about past odds for a specific game or want to analyze how odds changed for a particular event. VALID SPORT KEYS: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl, soccer_epl, soccer_uefa_champs_league, basketball_ncaab, americanfootball_ncaaf, mma_mixed_martial_arts, boxing_boxing. DO NOT use made-up keys.",
+        params_json_schema=params_schema,
+        on_invoke_tool=get_historical_event_odds
     )

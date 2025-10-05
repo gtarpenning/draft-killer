@@ -33,14 +33,16 @@ class AgentService:
     Uses OpenAI Agents Python SDK to provide intelligent responses with tool calling capabilities.
     """
 
-    def __init__(self, odds_service: OddsService | None = None):
+    def __init__(self, odds_service: OddsService | None = None, dev_mode: bool = False):
         """
         Initialize the agent service.
 
         Args:
             odds_service: Optional odds service instance
+            dev_mode: If True, tool call errors will be raised instead of caught
         """
         self.odds_service = odds_service
+        self.dev_mode = dev_mode
         self.agent = self._create_agent()
 
     def _create_agent(self) -> Agent:
@@ -67,7 +69,7 @@ When users ask about bets, parlays, or odds, use the available tools to fetch cu
             name="DraftKiller",
             instructions=system_prompt,
             model="gpt-4o-mini",  # Cost-effective model
-            tools=get_odds_tools(self.odds_service)
+            tools=get_odds_tools(self.odds_service, dev_mode=self.dev_mode)
         )
 
         return agent
@@ -105,7 +107,33 @@ When users ask about bets, parlays, or odds, use the available tools to fetch cu
             result = Runner.run_streamed(self.agent, input_data)
             async for event in result.stream_events():
                 if event.type == "raw_response_event":
-                    # Skip raw response events - we'll handle content separately
+                    # Handle raw response events - only stream from ResponseTextDeltaEvent
+                    if hasattr(event, 'data') and event.data:
+                        # Only process ResponseTextDeltaEvent (actual response content)
+                        # Skip ResponseFunctionCallArgumentsDeltaEvent (tool call arguments)
+                        if (hasattr(event.data, 'delta') and event.data.delta and
+                            type(event.data).__name__ == 'ResponseTextDeltaEvent'):
+                            yield {
+                                "type": "content",
+                                "data": event.data.delta
+                            }
+                        # Also check for other potential content formats
+                        elif isinstance(event.data, dict):
+                            if 'content' in event.data and event.data['content']:
+                                yield {
+                                    "type": "content",
+                                    "data": event.data['content']
+                                }
+                            elif 'delta' in event.data and event.data['delta']:
+                                yield {
+                                    "type": "content",
+                                    "data": event.data['delta']
+                                }
+                        elif isinstance(event.data, str) and event.data.strip():
+                            yield {
+                                "type": "content",
+                                "data": event.data
+                            }
                     continue
                 elif event.type == "run_item_stream_event":
                     if event.item.type == "tool_call_item":
@@ -145,6 +173,8 @@ When users ask about bets, parlays, or odds, use the available tools to fetch cu
                             # Fallback to direct name attribute
                             tool_name = getattr(event.item, 'name', 'unknown')
 
+                        # Tool output received, we're still in tool call phase
+                        # The response phase will start after this
                         yield {
                             "type": "tool_output",
                             "data": {
@@ -164,8 +194,27 @@ When users ask about bets, parlays, or odds, use the available tools to fetch cu
                             "agent_name": event.new_agent.name
                         }
                     }
+                elif event.type == "message_stream_event":
+                    # Handle message stream events that might contain content
+                    if hasattr(event, 'content') and event.content:
+                        yield {
+                            "type": "content",
+                            "data": event.content
+                        }
+                elif event.type == "run_stream_event":
+                    # Handle run stream events
+                    if hasattr(event, 'content') and event.content:
+                        yield {
+                            "type": "content",
+                            "data": event.content
+                        }
+                else:
+                    # Log any other event types we might be missing
+                    console.print(f"[yellow]Unhandled event type: {event.type}[/yellow]")
 
         except Exception as e:
+            if self.dev_mode:
+                raise e
             console.print(f"[red]Agent error: {e}[/red]")
             yield {
                 "type": "error",
@@ -205,18 +254,21 @@ When users ask about bets, parlays, or odds, use the available tools to fetch cu
             return result.final_output
 
         except Exception as e:
+            if self.dev_mode:
+                raise e
             console.print(f"[red]Agent error: {e}[/red]")
             return f"I encountered an error while processing your request: {str(e)}"
 
 
-def get_agent_service(odds_service: OddsService | None = None) -> AgentService:
+def get_agent_service(odds_service: OddsService | None = None, dev_mode: bool = False) -> AgentService:
     """
     Get or create an agent service instance.
 
     Args:
         odds_service: Optional odds service instance
+        dev_mode: If True, tool call errors will be raised instead of caught
 
     Returns:
         AgentService instance
     """
-    return AgentService(odds_service)
+    return AgentService(odds_service, dev_mode)

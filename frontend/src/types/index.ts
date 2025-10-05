@@ -8,8 +8,9 @@
 export interface User {
   id: string;
   email: string;
+  username: string;
+  is_active: boolean;
   created_at: string;
-  last_login: string | null;
 }
 
 export interface Message {
@@ -49,6 +50,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
+  username: string;
 }
 
 export interface ChatRequest {
@@ -81,6 +83,29 @@ export interface ToolOutput {
 export interface ApiError {
   detail: string;
   code?: string;
+}
+
+export interface TableInfo {
+  name: string;
+  row_count: number;
+}
+
+export interface TableData {
+  table_name: string;
+  columns: string[];
+  rows: Record<string, any>[];
+  total_rows: number;
+}
+
+export interface UsageStats {
+  type: 'authenticated' | 'anonymous';
+  user_id?: string;
+  email?: string;
+  is_active?: boolean;
+  session_id?: string;
+  request_count: number;
+  last_request?: string;
+  user_agent?: string;
 }
 
 

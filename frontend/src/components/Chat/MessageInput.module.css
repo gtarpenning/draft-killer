@@ -59,3 +59,21 @@
   cursor: not-allowed;
 }
 
+.cancelButton {
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: var(--layout-border-radius);
+  cursor: pointer;
+  transition: opacity var(--animation-speed-normal);
+  white-space: nowrap;
+  min-width: 300px;
+}
+
+.cancelButton:hover {
+  opacity: 0.9;
+}
+

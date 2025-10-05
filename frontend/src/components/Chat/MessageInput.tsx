@@ -11,12 +11,14 @@ import styles from './MessageInput.module.css';
 
 interface MessageInputProps {
   onSend: (message: string) => void;
+  onCancel?: () => void;
   disabled?: boolean;
   placeholder?: string;
 }
 
 export function MessageInput({
   onSend,
+  onCancel,
   disabled = false,
   placeholder = 'Describe your parlay...',
 }: MessageInputProps) {
@@ -26,6 +28,12 @@ export function MessageInput({
     if (message.trim() && !disabled) {
       onSend(message);
       setMessage('');
+    }
+  }
+  
+  function handleCancel() {
+    if (onCancel) {
+      onCancel();
     }
   }
   
@@ -49,11 +57,11 @@ export function MessageInput({
         rows={3}
       />
       <button
-        className={styles.button}
-        onClick={handleSend}
-        disabled={disabled || !message.trim()}
+        className={disabled ? styles.cancelButton : styles.button}
+        onClick={disabled ? handleCancel : handleSend}
+        disabled={!disabled && !message.trim()}
       >
-        {disabled ? 'Analyzing...' : 'Analyze'}
+        {disabled ? 'Cancel' : 'Analyze'}
       </button>
     </div>
   );
