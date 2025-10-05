@@ -33,11 +33,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
-    # Weights & Biases Weave
+    # LLM Provider Configuration
+    LLM_PROVIDER: str = "openai"  # "openai" or "wandb"
     WANDB_API_KEY: str
     OPENAI_API_KEY: str
     WEAVE_PROJECT: str = "draft-killer"
-    INFERENCE_API_URL: str = "https://api.openai.com/v1" # "https://api.inference.wandb.ai/v1"
     
     # The Odds API
     ODDS_API_KEY: str
@@ -76,6 +76,17 @@ class Settings(BaseSettings):
         if len(v) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters long")
         return v
+    
+    @field_validator("LLM_PROVIDER")
+    @classmethod
+    def validate_llm_provider(cls, v: str) -> str:
+        """Validate LLM provider setting."""
+        valid_providers = ["openai", "wandb"]
+        if v.lower() not in valid_providers:
+            raise ValueError(
+                f"LLM_PROVIDER must be one of {valid_providers}, got: {v}"
+            )
+        return v.lower()
     
     @property
     def is_production(self) -> bool:

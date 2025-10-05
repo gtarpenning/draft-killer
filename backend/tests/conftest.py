@@ -23,6 +23,13 @@ sys.path.insert(0, str(backend_dir))
 from dotenv import load_dotenv
 load_dotenv(backend_dir / ".env")
 
+# Set test environment variable for Weave
+os.environ["WEAVE_TEST_MODE"] = "true"
+
+# Initialize Weave for testing using centralized configuration
+from app.core.weave_config import init_weave_for_tests
+init_weave_for_tests()
+
 from app.main import app
 from app.models.database import Base
 from app.core.database import get_db
@@ -180,6 +187,7 @@ def check_dev_environment():
     weave_project = os.getenv("WEAVE_PROJECT")
     if weave_project:
         print(f"✅ WEAVE_PROJECT configured: {weave_project}")
+        print(f"✅ Weave initialized for testing: {weave_project}-test")
     else:
         print("⚠️  WEAVE_PROJECT not set - inference tests will use mock data")
     

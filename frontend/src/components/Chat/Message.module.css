@@ -134,3 +134,31 @@
   overflow-y: hidden;
 }
 
+/* Tool call indicators */
+.toolCalls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.toolCall {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 6px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.toolIcon {
+  font-size: 1rem;
+}
+
+.toolText {
+  font-weight: 500;
+}
+

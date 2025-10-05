@@ -7,7 +7,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Message } from '@/types';
+import type { Message, StreamChunk } from '@/types';
 import { streamChat } from '@/lib/api';
 
 interface UseChatOptions {
@@ -69,14 +69,31 @@ export function useChat(options: UseChatOptions = {}) {
           setCurrentConversationId(chunk.conversation_id);
         }
         
-        if (chunk.content) {
-          assistantContent += chunk.content;
+        // Handle different event types
+        if (chunk.event.type === 'content') {
+          assistantContent += chunk.event.data;
           
           // Update the assistant message
           setMessages(prev =>
             prev.map(msg =>
               msg.id === assistantMessageId
                 ? { ...msg, content: assistantContent }
+                : msg
+            )
+          );
+        } else if (chunk.event.type === 'tool_call') {
+          // Add tool call indicator to message
+          const toolName = chunk.event.data.tool_name;
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMessageId
+                ? { 
+                    ...msg, 
+                    metadata: { 
+                      ...msg.metadata, 
+                      tool_calls: [...(msg.metadata?.tool_calls || []), toolName]
+                    }
+                  }
                 : msg
             )
           );

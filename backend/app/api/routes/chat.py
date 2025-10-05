@@ -10,6 +10,7 @@ Provides endpoints for:
 from typing import Annotated, Optional
 from uuid import UUID
 import json
+import weave
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
@@ -28,8 +29,10 @@ from app.models.schemas import (
     MessageResponse,
 )
 from app.services.llm_service import stream_parlay_analysis
-from app.services.odds_service import get_odds_service, OddsService
+from app.services.odds_api.service import OddsService
+from app.services.odds_api.helpers import get_odds_service
 from app.services.query_extraction_service import get_query_extraction_service, QueryExtractionService
+from app.services.agent_service import get_agent_service
 
 router = APIRouter()
 
@@ -188,6 +191,7 @@ async def get_optional_user(
 
 
 @router.post("/stream")
+@weave.op()
 async def stream_chat(
     chat_request: ChatRequest,
     request: Request,
@@ -506,5 +510,160 @@ async def delete_conversation(
     
     await db.delete(conversation)
     await db.commit()
+
+
+@router.post("/agent-stream")
+@weave.op()
+async def stream_agent_chat(
+    chat_request: ChatRequest,
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    odds_service: Annotated[OddsService, Depends(get_odds_service)],
+    session_id: Annotated[str, Depends(get_session_id)],
+    current_user: Optional[User] = Depends(get_optional_user),
+):
+    """
+    Stream a chat response using the autonomous agent with tool calling.
+    
+    This endpoint uses the OpenAI Agents SDK to provide intelligent responses
+    with the ability to make tool calls for fetching odds data.
+    
+    Works for both authenticated and anonymous users.
+    Anonymous users are limited to 10 free requests.
+    
+    Args:
+        chat_request: Chat request with message and optional conversation_id
+        request: FastAPI request object
+        response: FastAPI response object
+        db: Database session
+        odds_service: Odds API service
+        session_id: Session ID for anonymous users
+        current_user: Optional authenticated user
+        
+    Returns:
+        Server-Sent Events stream with agent response chunks
+    """
+    # Track usage and check rate limits
+    await track_and_check_usage(
+        request,
+        response,
+        db,
+        session_id,
+        user_id=current_user.id if current_user else None,
+    )
+    
+    # Only authenticated users can have conversations
+    # Anonymous users get one-off responses
+    conversation = None
+    if current_user:
+        # Get or create conversation
+        conversation = await get_or_create_conversation(
+            db, current_user, chat_request.conversation_id
+        )
+    
+    # Save user message only for authenticated users
+    if conversation:
+        user_message = await save_message(
+            db,
+            conversation.id,
+            MessageRole.USER,
+            chat_request.message
+        )
+        
+        # Generate title if this is the first user message
+        if not conversation.title:
+            conversation.title = await generate_conversation_title(chat_request.message)
+            await db.commit()
+    
+    # Get conversation history for context
+    conversation_history = []
+    if conversation:
+        # Get recent messages for context
+        result = await db.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at.desc())
+            .limit(10)
+        )
+        recent_messages = result.scalars().all()
+        
+        # Convert to the format expected by the agent
+        for msg in reversed(recent_messages):
+            conversation_history.append({
+                "role": msg.role.value,
+                "content": msg.content
+            })
+    
+    # Initialize agent service
+    agent_service = get_agent_service(odds_service)
+    
+    async def event_stream():
+        """Generate Server-Sent Events stream."""
+        accumulated_content = []
+        
+        try:
+            # Stream the agent response
+            async for event in agent_service.stream_response(
+                chat_request.message, 
+                conversation_history
+            ):
+                if event["type"] == "content":
+                    accumulated_content.append(event["data"])
+                
+                # Send event as SSE
+                data = json.dumps({
+                    "event": event,
+                    "done": False,
+                    "conversation_id": str(conversation.id) if conversation else None,
+                })
+                yield f"data: {data}\n\n"
+            
+            # Save complete assistant message (only for authenticated users)
+            if conversation:
+                full_content = "".join(accumulated_content)
+                metadata = {
+                    "model": "gpt-4o-mini",  # Agent model
+                    "streamed": True,
+                    "agent_mode": True,
+                    "tools_available": True,
+                }
+                
+                # Add odds metadata if available
+                if odds_service.get_remaining_requests():
+                    metadata["api_requests_remaining"] = odds_service.get_remaining_requests()
+                
+                await save_message(
+                    db,
+                    conversation.id,
+                    MessageRole.ASSISTANT,
+                    full_content,
+                    message_metadata=metadata
+                )
+            
+            # Send final "done" event
+            data = json.dumps({
+                "event": {"type": "done", "data": ""},
+                "done": True,
+                "conversation_id": str(conversation.id) if conversation else None,
+            })
+            yield f"data: {data}\n\n"
+            
+        except Exception as e:
+            # Send error event
+            error_data = json.dumps({
+                "event": {"type": "error", "data": str(e)},
+                "done": True,
+            })
+            yield f"data: {error_data}\n\n"
+    
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable buffering in nginx
+        }
+    )
 
 

@@ -1,27 +1,37 @@
 """
-OpenAI client initialization for W&B Inference.
+LLM client initialization with automatic provider switching.
 
 This module handles the setup of the AsyncOpenAI client configured
-to use Weights & Biases Inference API.
+to use either OpenAI or W&B Inference API based on environment configuration.
 """
 
 from openai import AsyncOpenAI
 import weave
 
 from app.core.config import settings
+from app.services.llm_service.provider_config import (
+    provider_manager,
+    get_current_base_url,
+    get_current_api_key,
+    get_current_provider_config
+)
 
+# Initialize Weave for tracking/observability using centralized configuration
+import os
+from app.core.weave_config import init_weave_for_tests, init_weave_for_production
 
-# Initialize Weave for tracking/observability
-weave.init(settings.WEAVE_PROJECT)
-
-base_url = settings.INFERENCE_API_URL or "https://api.openai.com/v1"
-if base_url == "https://api.openai.com/v1":
-    api_key = settings.OPENAI_API_KEY
+if os.getenv("WEAVE_TEST_MODE") == "true":
+    init_weave_for_tests()
 else:
-    api_key = settings.WANDB_API_KEY
+    init_weave_for_production()
 
-# Initialize OpenAI client for W&B Inference
-# This uses the OpenAI-compatible API provided by W&B
+# Get current provider configuration
+provider_config = get_current_provider_config()
+base_url = get_current_base_url()
+api_key = get_current_api_key()
+
+# Initialize OpenAI client with current provider settings
+# This works with both OpenAI and W&B Inference (OpenAI-compatible)
 openai_client = AsyncOpenAI(
     base_url=base_url,
     api_key=api_key,

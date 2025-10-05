@@ -56,11 +56,26 @@ export interface ChatRequest {
   conversation_id?: string;
 }
 
+export interface StreamEvent {
+  type: 'tool_call' | 'tool_output' | 'content' | 'agent_update' | 'error' | 'done';
+  data: any;
+}
+
 export interface StreamChunk {
-  content: string;
+  event: StreamEvent;
   done: boolean;
   conversation_id?: string;
   error?: string;
+}
+
+export interface ToolCall {
+  tool_name: string;
+  arguments: string;
+}
+
+export interface ToolOutput {
+  tool_name: string;
+  output: string;
 }
 
 export interface ApiError {

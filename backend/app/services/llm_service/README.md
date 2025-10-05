@@ -1,81 +1,107 @@
-# LLM Service
+# LLM Service - Provider Switching
 
-A modular service for managing LLM-based parlay analysis using Weights & Biases Weave.
+This module provides a comprehensive switching mechanism between different LLM providers (OpenAI and Weights & Biases Inference) using a single environment variable.
 
-## Structure
+## Quick Start
 
+### Environment Variables
+
+Set one of these to control the provider:
+
+```bash
+# Use OpenAI (default)
+export LLM_PROVIDER=openai
+
+# Use W&B Inference
+export LLM_PROVIDER=wandb
+
+# Auto-detect based on available API keys (default behavior)
+unset LLM_PROVIDER
 ```
-llm_service/
-├── __init__.py           # Public API exports
-├── client.py             # OpenAI client initialization & Weave setup
-├── model.py              # ParlayAnalyzer Weave model
-├── service.py            # High-level service functions
-├── prompts.py            # Prompt loading and formatting utilities
-├── prompts/              # Prompt templates directory
-│   ├── system_prompt.txt        # System prompt for the LLM
-│   └── user_prompt_template.txt # User prompt template
-└── README.md             # This file
+
+### API Keys
+
+Make sure you have the appropriate API key set:
+
+```bash
+# For OpenAI
+export OPENAI_API_KEY=your_openai_key
+
+# For W&B Inference  
+export WANDB_API_KEY=your_wandb_key
 ```
 
 ## Usage
 
-Import from the package as before:
+### Basic Usage
 
 ```python
-from app.services.llm_service import (
-    ParlayAnalyzer,
-    stream_parlay_analysis,
-    create_user_prompt,
-    get_conversation_context,
-    SYSTEM_PROMPT,
+from app.services.llm_service.client import openai_client
+
+# The client is automatically configured based on LLM_PROVIDER
+async def chat_completion(messages):
+    response = await openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
+    return response
+```
+
+### Provider Management
+
+```python
+from app.services.llm_service.provider_config import (
+    provider_manager,
+    get_current_provider_config,
+    get_current_base_url,
+    get_current_api_key,
+    LLMProvider
 )
+
+# Get current provider info
+info = provider_manager.get_provider_info()
+print(f"Using {info['name']} at {info['base_url']}")
+
+# Switch providers programmatically
+provider_manager.switch_provider(LLMProvider.WANDB)
+
+# Get configuration details
+config = get_current_provider_config()
+base_url = get_current_base_url()
+api_key = get_current_api_key()
 ```
 
-## Adding New Prompts
+## Configuration
 
-1. Create a new `.txt` file in the `prompts/` directory
-2. Add a loader function in `prompts.py` if needed
-3. Reference the prompt in your model or service code
+### Provider Detection Logic
 
-Example:
+1. **Explicit Setting**: If `LLM_PROVIDER` is set, use that provider
+2. **Auto-detection**: If not set, detect based on available API keys:
+   - If only `WANDB_API_KEY` is available → Use W&B
+   - If only `OPENAI_API_KEY` is available → Use OpenAI  
+   - If both are available → Prefer OpenAI
+   - If neither is available → Use OpenAI (will fail at runtime)
+
+### Supported Providers
+
+| Provider | Base URL | API Key Env Var | Description |
+|----------|----------|-----------------|-------------|
+| `openai` | `https://api.openai.com/v1` | `OPENAI_API_KEY` | OpenAI's official API |
+| `wandb` | `https://api.inference.wandb.ai/v1` | `WANDB_API_KEY` | W&B Inference API (OpenAI-compatible) |
+
+## Error Handling
+
+The system provides clear error messages when API keys are missing:
+
 ```python
-# In prompts.py
-def get_fallback_prompt() -> str:
-    return load_prompt("fallback_prompt.txt")
+# This will raise a clear error if the required API key is not set
+api_key = get_current_api_key()
 ```
 
-## Iterating on Prompts
+## Benefits
 
-To modify prompts:
-1. Edit the `.txt` files directly in `prompts/`
-2. Changes take effect on next import (restart server for development)
-3. No code changes needed - just update the text files
-
-## Future Agent Architecture
-
-This structure is designed to support expansion into a full agent system:
-- Add new prompt templates for different agent roles
-- Create additional models for specialized tasks
-- Implement tool-calling prompts
-- Add memory/context management prompts
-
-## Files
-
-### `client.py`
-Initializes the AsyncOpenAI client configured for W&B Inference API and sets up Weave tracking.
-
-### `prompts.py`
-Manages loading and formatting of all prompts. All prompt text should live in separate `.txt` files, not in code.
-
-### `model.py`
-Contains the `ParlayAnalyzer` Weave Model with `predict()` and `stream_predict()` methods.
-
-### `service.py`
-High-level service functions that application code calls:
-- `analyze_parlay()` - Non-streaming analysis
-- `stream_parlay_analysis()` - Streaming analysis
-- `get_conversation_context()` - Build context from message history
-
-### `__init__.py`
-Exposes the public API that other parts of the application import.
-
+- ✅ **Single Environment Variable**: Just set `LLM_PROVIDER` to switch
+- ✅ **Automatic Configuration**: Base URL, API key, and model selection handled automatically
+- ✅ **Easy Switching**: Change providers without code changes
+- ✅ **Graceful Fallback**: Clear error messages for missing configuration
+- ✅ **Backward Compatible**: Existing code continues to work unchanged
