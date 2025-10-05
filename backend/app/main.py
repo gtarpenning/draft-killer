@@ -5,23 +5,23 @@ This module initializes the FastAPI application, configures middleware,
 and registers all API routes.
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes import admin, auth, chat, health
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.routes import health, auth, chat, admin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Lifespan context manager for startup and shutdown events.
-    
+
     Handles initialization and cleanup tasks:
     - Database initialization
     - Resource cleanup
@@ -31,9 +31,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print(f"🚀 {settings.APP_NAME} v{settings.VERSION} starting...")
     print(f"📍 Environment: {settings.ENVIRONMENT}")
     print(f"🔧 Debug mode: {settings.DEBUG}")
-    
+
     yield
-    
+
     # Shutdown
     print("👋 Shutting down...")
 
@@ -128,7 +128,7 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

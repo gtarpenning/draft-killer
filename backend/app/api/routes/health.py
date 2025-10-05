@@ -17,10 +17,10 @@ router = APIRouter()
 async def health_check() -> HealthResponse:
     """
     Health check endpoint.
-    
+
     Returns basic service information to verify the API is running.
     This endpoint does not require authentication.
-    
+
     Returns:
         HealthResponse with status, version, and environment
     """

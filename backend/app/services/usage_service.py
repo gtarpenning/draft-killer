@@ -6,11 +6,10 @@ Anonymous users are identified by session_id (cookie + user-agent hash).
 """
 
 import hashlib
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import UsageRecord, User
@@ -19,11 +18,11 @@ from app.models.database import UsageRecord, User
 def generate_session_id(cookie_value: str, user_agent: str) -> str:
     """
     Generate a unique session identifier from cookie and user-agent.
-    
+
     Args:
         cookie_value: Random cookie value stored in browser
         user_agent: User's browser user-agent string
-        
+
     Returns:
         SHA256 hash of combined cookie and user-agent
     """
@@ -34,14 +33,14 @@ def generate_session_id(cookie_value: str, user_agent: str) -> str:
 async def record_usage(
     db: AsyncSession,
     endpoint: str,
-    user_id: Optional[UUID] = None,
-    session_id: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    ip_address: Optional[str] = None,
+    user_id: UUID | None = None,
+    session_id: str | None = None,
+    user_agent: str | None = None,
+    ip_address: str | None = None,
 ) -> UsageRecord:
     """
     Record a usage event.
-    
+
     Args:
         db: Database session
         endpoint: API endpoint being accessed
@@ -49,7 +48,7 @@ async def record_usage(
         session_id: Optional anonymous session ID
         user_agent: Optional user agent string
         ip_address: Optional IP address
-        
+
     Returns:
         Created usage record
     """
@@ -60,36 +59,36 @@ async def record_usage(
         user_agent=user_agent,
         ip_address=ip_address,
     )
-    
+
     db.add(record)
     await db.commit()
     await db.refresh(record)
-    
+
     return record
 
 
 async def get_usage_count(
     db: AsyncSession,
-    user_id: Optional[UUID] = None,
-    session_id: Optional[str] = None,
-    endpoint: Optional[str] = None,
-    since: Optional[datetime] = None,
+    user_id: UUID | None = None,
+    session_id: str | None = None,
+    endpoint: str | None = None,
+    since: datetime | None = None,
 ) -> int:
     """
     Get usage count for a user or session.
-    
+
     Args:
         db: Database session
         user_id: Optional user ID to filter by
         session_id: Optional session ID to filter by
         endpoint: Optional endpoint to filter by
         since: Optional datetime to count from (e.g., last 24 hours)
-        
+
     Returns:
         Number of usage records matching the filters
     """
     query = select(func.count(UsageRecord.id))
-    
+
     # Apply filters
     if user_id is not None:
         query = query.where(UsageRecord.user_id == user_id)
@@ -99,7 +98,7 @@ async def get_usage_count(
         query = query.where(UsageRecord.endpoint == endpoint)
     if since is not None:
         query = query.where(UsageRecord.created_at >= since)
-    
+
     result = await db.execute(query)
     return result.scalar() or 0
 
@@ -111,12 +110,12 @@ async def check_anonymous_rate_limit(
 ) -> tuple[bool, int]:
     """
     Check if an anonymous session has exceeded the rate limit.
-    
+
     Args:
         db: Database session
         session_id: Anonymous session identifier
         limit: Maximum number of requests allowed
-        
+
     Returns:
         Tuple of (is_allowed, current_count)
         is_allowed: True if under limit, False if limit exceeded
@@ -124,7 +123,7 @@ async def check_anonymous_rate_limit(
     """
     # Count all usage for this session (no time limit - lifetime limit)
     count = await get_usage_count(db, session_id=session_id)
-    
+
     return count < limit, count
 
 
@@ -134,11 +133,11 @@ async def get_all_usage_stats(
 ) -> list[dict]:
     """
     Get usage statistics for all users and anonymous sessions.
-    
+
     Args:
         db: Database session
         limit: Maximum number of results
-        
+
     Returns:
         List of usage statistics with user/session info
     """
@@ -155,12 +154,12 @@ async def get_all_usage_stats(
         .group_by(User.id, User.email, User.is_active)
         .order_by(func.count(UsageRecord.id).desc())
     )
-    
+
     user_result = await db.execute(user_query)
     user_rows = user_result.all()
-    
+
     stats = []
-    
+
     # Add authenticated user stats
     for row in user_rows:
         stats.append({
@@ -171,7 +170,7 @@ async def get_all_usage_stats(
             "request_count": row.request_count,
             "last_request": row.last_request.isoformat() if row.last_request else None,
         })
-    
+
     # Query for anonymous sessions
     anon_query = (
         select(
@@ -186,10 +185,10 @@ async def get_all_usage_stats(
         .order_by(func.count(UsageRecord.id).desc())
         .limit(limit)
     )
-    
+
     anon_result = await db.execute(anon_query)
     anon_rows = anon_result.all()
-    
+
     # Add anonymous session stats
     for row in anon_rows:
         stats.append({
@@ -199,7 +198,7 @@ async def get_all_usage_stats(
             "last_request": row.last_request.isoformat() if row.last_request else None,
             "user_agent": row.user_agent,
         })
-    
+
     return stats
 
 
@@ -209,14 +208,14 @@ async def toggle_user_access(
 ) -> User:
     """
     Toggle a user's access (enable/disable).
-    
+
     Args:
         db: Database session
         user_id: User ID to toggle
-        
+
     Returns:
         Updated user object
-        
+
     Raises:
         ValueError: If user not found
     """
@@ -224,13 +223,13 @@ async def toggle_user_access(
         select(User).where(User.id == user_id)
     )
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise ValueError(f"User with id {user_id} not found")
-    
+
     user.is_active = not user.is_active
     await db.commit()
     await db.refresh(user)
-    
+
     return user
 

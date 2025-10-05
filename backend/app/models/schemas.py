@@ -6,12 +6,11 @@ They provide automatic validation, serialization, and documentation.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from uuid import UUID
 from enum import Enum
+from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
-
 
 # ============================================================================
 # Authentication Schemas
@@ -21,7 +20,7 @@ class UserRegister(BaseModel):
     """Schema for user registration request."""
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., min_length=8, description="User password (min 8 characters)")
-    
+
     @field_validator("password")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
@@ -54,8 +53,8 @@ class UserResponse(BaseModel):
     id: UUID
     email: str
     created_at: datetime
-    last_login: Optional[datetime] = None
-    
+    last_login: datetime | None = None
+
     model_config = {"from_attributes": True}
 
 
@@ -66,8 +65,8 @@ class UserResponse(BaseModel):
 class ChatRequest(BaseModel):
     """Schema for chat message request."""
     message: str = Field(..., min_length=1, max_length=5000, description="User message")
-    conversation_id: Optional[UUID] = Field(None, description="Existing conversation ID (optional)")
-    
+    conversation_id: UUID | None = Field(None, description="Existing conversation ID (optional)")
+
     @field_validator("message")
     @classmethod
     def validate_message(cls, v: str) -> str:
@@ -82,31 +81,31 @@ class MessageResponse(BaseModel):
     id: UUID
     role: str
     content: str
-    message_metadata: Optional[Dict[str, Any]] = None
+    message_metadata: dict[str, Any] | None = None
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 
 class ConversationResponse(BaseModel):
     """Schema for conversation data in responses."""
     id: UUID
-    title: Optional[str] = None
+    title: str | None = None
     created_at: datetime
     updated_at: datetime
     messages: list[MessageResponse] = []
-    
+
     model_config = {"from_attributes": True}
 
 
 class ConversationListItem(BaseModel):
     """Schema for conversation list items (without full message history)."""
     id: UUID
-    title: Optional[str] = None
+    title: str | None = None
     created_at: datetime
     updated_at: datetime
     message_count: int = 0
-    
+
     model_config = {"from_attributes": True}
 
 
@@ -124,14 +123,14 @@ class HealthResponse(BaseModel):
 class ErrorResponse(BaseModel):
     """Schema for error responses."""
     detail: str = Field(..., description="Error message")
-    code: Optional[str] = Field(None, description="Error code for programmatic handling")
-    
-    
+    code: str | None = Field(None, description="Error code for programmatic handling")
+
+
 class StreamChunk(BaseModel):
     """Schema for streaming response chunks."""
     content: str = Field(..., description="Chunk of generated text")
     done: bool = Field(default=False, description="Whether this is the final chunk")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Optional metadata")
+    metadata: dict[str, Any] | None = Field(None, description="Optional metadata")
 
 
 # ============================================================================
@@ -159,7 +158,7 @@ class ExtractedEntity(BaseModel):
     """A single entity extracted from user's message."""
     type: EntityType = Field(..., description="Type of entity")
     value: str = Field(..., description="Entity value")
-    sport_inferred: Optional[str] = Field(None, description="Sport inferred from entity")
+    sport_inferred: str | None = Field(None, description="Sport inferred from entity")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Confidence score")
 
 
@@ -174,20 +173,20 @@ class ApiQueryType(str, Enum):
 class SuggestedApiQuery(BaseModel):
     """A suggested API query to fetch relevant odds data."""
     query_type: ApiQueryType = Field(..., description="Type of query")
-    sport: Optional[str] = Field(None, description="Sport key for API")
-    team_name: Optional[str] = Field(None, description="Team name to look up")
-    player_name: Optional[str] = Field(None, description="Player name to look up")
-    market: Optional[str] = Field(None, description="Market type (h2h, spreads, totals, etc)")
-    params: Dict[str, Any] = Field(default_factory=dict, description="Additional query parameters")
+    sport: str | None = Field(None, description="Sport key for API")
+    team_name: str | None = Field(None, description="Team name to look up")
+    player_name: str | None = Field(None, description="Player name to look up")
+    market: str | None = Field(None, description="Market type (h2h, spreads, totals, etc)")
+    params: dict[str, Any] = Field(default_factory=dict, description="Additional query parameters")
 
 
 class BettingQuery(BaseModel):
     """Structured betting query extracted from user message."""
     intent: BettingIntent = Field(..., description="Primary intent of the message")
-    sport: Optional[str] = Field(None, description="Sport key (e.g., americanfootball_nfl)")
+    sport: str | None = Field(None, description="Sport key (e.g., americanfootball_nfl)")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Overall confidence score")
-    entities: List[ExtractedEntity] = Field(default_factory=list, description="Extracted entities")
-    suggested_queries: List[SuggestedApiQuery] = Field(default_factory=list, description="API queries to execute")
-    reasoning: Optional[str] = Field(None, description="Explanation of extraction (for debugging)")
+    entities: list[ExtractedEntity] = Field(default_factory=list, description="Extracted entities")
+    suggested_queries: list[SuggestedApiQuery] = Field(default_factory=list, description="API queries to execute")
+    reasoning: str | None = Field(None, description="Explanation of extraction (for debugging)")
 
 

@@ -7,12 +7,6 @@ Uses database but makes minimal external API calls.
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.main import app
-from app.models.database import User
-
 
 # ============================================================================
 # Test Data
@@ -31,7 +25,7 @@ ANOTHER_USER_EMAIL = "another@example.com"
 async def registered_user_token(async_client: AsyncClient) -> str:
     """
     Register a user and return their access token.
-    
+
     This fixture runs once and the token is reused across tests,
     minimizing database operations.
     """
@@ -43,10 +37,10 @@ async def registered_user_token(async_client: AsyncClient) -> str:
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     assert response.status_code == 201
     data = response.json()
-    
+
     return data["access_token"]
 
 
@@ -64,10 +58,10 @@ async def test_register_new_user(async_client: AsyncClient):
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     assert response.status_code == 201
     data = response.json()
-    
+
     assert "access_token" in data
     assert isinstance(data["access_token"], str)
     assert len(data["access_token"]) > 0
@@ -83,7 +77,7 @@ async def test_register_duplicate_email(async_client: AsyncClient, registered_us
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     assert response.status_code == 400
     assert "already registered" in response.json()["detail"].lower()
 
@@ -98,7 +92,7 @@ async def test_register_invalid_email(async_client: AsyncClient):
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     assert response.status_code == 422  # Validation error
 
 
@@ -112,7 +106,7 @@ async def test_register_short_password(async_client: AsyncClient):
             "password": "short"  # Too short
         }
     )
-    
+
     assert response.status_code == 422  # Validation error
 
 
@@ -130,10 +124,10 @@ async def test_login_success(async_client: AsyncClient, registered_user_token: s
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert "access_token" in data
     assert isinstance(data["access_token"], str)
     assert len(data["access_token"]) > 0
@@ -149,7 +143,7 @@ async def test_login_wrong_password(async_client: AsyncClient, registered_user_t
             "password": "WrongPassword123!"
         }
     )
-    
+
     assert response.status_code == 401
     assert "incorrect" in response.json()["detail"].lower()
 
@@ -164,7 +158,7 @@ async def test_login_nonexistent_user(async_client: AsyncClient):
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     assert response.status_code == 401
 
 
@@ -178,10 +172,10 @@ async def test_login_returns_valid_jwt(async_client: AsyncClient, registered_use
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     data = response.json()
     token = data["access_token"]
-    
+
     # JWT tokens have 3 parts separated by dots
     parts = token.split(".")
     assert len(parts) == 3
@@ -198,10 +192,10 @@ async def test_get_current_user(async_client: AsyncClient, registered_user_token
         "/api/auth/me",
         headers={"Authorization": f"Bearer {registered_user_token}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert "id" in data
     assert "email" in data
     assert data["email"] == TEST_USER_EMAIL
@@ -211,7 +205,7 @@ async def test_get_current_user(async_client: AsyncClient, registered_user_token
 async def test_get_current_user_no_token(async_client: AsyncClient):
     """Test that accessing /me without token fails."""
     response = await async_client.get("/api/auth/me")
-    
+
     assert response.status_code == 403  # No Authorization header
 
 
@@ -222,7 +216,7 @@ async def test_get_current_user_invalid_token(async_client: AsyncClient):
         "/api/auth/me",
         headers={"Authorization": "Bearer invalid_token_here"}
     )
-    
+
     assert response.status_code == 401
 
 
@@ -231,12 +225,12 @@ async def test_get_current_user_expired_token(async_client: AsyncClient):
     """Test that expired token is rejected."""
     # This is a JWT that's clearly expired (exp in the past)
     expired_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiZXhwIjoxfQ.invalid"
-    
+
     response = await async_client.get(
         "/api/auth/me",
         headers={"Authorization": f"Bearer {expired_token}"}
     )
-    
+
     assert response.status_code == 401
 
 
@@ -252,9 +246,9 @@ async def test_token_contains_user_info(async_client: AsyncClient, registered_us
         "/api/auth/me",
         headers={"Authorization": f"Bearer {registered_user_token}"}
     )
-    
+
     data = response.json()
-    
+
     # Should have standard user fields
     assert "id" in data
     assert "email" in data
@@ -273,7 +267,7 @@ async def test_multiple_logins_generate_valid_tokens(async_client: AsyncClient, 
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     response2 = await async_client.post(
         "/api/auth/login",
         json={
@@ -281,10 +275,10 @@ async def test_multiple_logins_generate_valid_tokens(async_client: AsyncClient, 
             "password": TEST_USER_PASSWORD
         }
     )
-    
+
     token1 = response1.json()["access_token"]
     token2 = response2.json()["access_token"]
-    
+
     # Tokens should be different (different timestamps)
     # But both should work
     response = await async_client.get(
@@ -292,7 +286,7 @@ async def test_multiple_logins_generate_valid_tokens(async_client: AsyncClient, 
         headers={"Authorization": f"Bearer {token1}"}
     )
     assert response.status_code == 200
-    
+
     response = await async_client.get(
         "/api/auth/me",
         headers={"Authorization": f"Bearer {token2}"}

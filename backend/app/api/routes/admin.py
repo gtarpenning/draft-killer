@@ -8,14 +8,13 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.core.config import settings
+from app.core.database import get_db
 from app.services.usage_service import get_all_usage_stats, toggle_user_access
-
 
 router = APIRouter()
 
@@ -70,7 +69,7 @@ class TableData(BaseModel):
 async def require_development_mode():
     """
     Dependency to ensure admin routes are only accessible in development.
-    
+
     Raises:
         HTTPException: If not in development mode
     """
@@ -92,17 +91,17 @@ async def get_usage_statistics(
 ) -> list[UsageStatsResponse]:
     """
     Get usage statistics for all users and anonymous sessions.
-    
+
     Only available in development mode.
-    
+
     Args:
         db: Database session
-        
+
     Returns:
         List of usage statistics
     """
     stats = await get_all_usage_stats(db, limit=1000)
-    
+
     return [UsageStatsResponse(**stat) for stat in stats]
 
 
@@ -114,23 +113,23 @@ async def toggle_user_access_endpoint(
 ) -> ToggleAccessResponse:
     """
     Toggle a user's access (enable/disable).
-    
+
     Only available in development mode.
-    
+
     Args:
         request: Request with user_id to toggle
         db: Database session
-        
+
     Returns:
         Updated user status
-        
+
     Raises:
         404: If user not found
     """
     try:
         user_id = UUID(request.user_id)
         user = await toggle_user_access(db, user_id)
-        
+
         return ToggleAccessResponse(
             user_id=str(user.id),
             email=user.email,
@@ -151,46 +150,46 @@ async def get_database_tables(
 ) -> list[TableInfo]:
     """
     Get list of all tables in the database with row counts.
-    
+
     Only available in development mode.
-    
+
     Args:
         db: Database session
-        
+
     Returns:
         List of tables with their row counts
     """
     # Get all tables from information_schema
-    query = text("""
-        SELECT 
+    text("""
+        SELECT
             table_name,
             (SELECT COUNT(*) FROM "' || table_name || '") as row_count
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
         AND table_type = 'BASE TABLE'
         ORDER BY table_name
     """)
-    
+
     # For better performance, we'll query each table separately
     tables_query = text("""
         SELECT table_name
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
         AND table_type = 'BASE TABLE'
         ORDER BY table_name
     """)
-    
+
     result = await db.execute(tables_query)
     tables = result.fetchall()
-    
+
     table_info_list = []
     for (table_name,) in tables:
         count_query = text(f'SELECT COUNT(*) FROM "{table_name}"')
         count_result = await db.execute(count_query)
         row_count = count_result.scalar() or 0
-        
+
         table_info_list.append(TableInfo(name=table_name, row_count=row_count))
-    
+
     return table_info_list
 
 
@@ -204,37 +203,37 @@ async def get_table_data(
 ) -> TableData:
     """
     Get data from a specific table.
-    
+
     Only available in development mode.
-    
+
     Args:
         table_name: Name of the table to query
         db: Database session
         limit: Maximum number of rows to return (default: 100)
         offset: Number of rows to skip (default: 0)
-        
+
     Returns:
         Table data with columns and rows
-        
+
     Raises:
         404: If table not found
     """
     # Validate table exists
     table_check = text("""
         SELECT table_name
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
         AND table_type = 'BASE TABLE'
         AND table_name = :table_name
     """)
-    
+
     result = await db.execute(table_check, {"table_name": table_name})
     if not result.fetchone():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Table '{table_name}' not found"
         )
-    
+
     # Get column names
     columns_query = text("""
         SELECT column_name
@@ -243,19 +242,19 @@ async def get_table_data(
         AND table_name = :table_name
         ORDER BY ordinal_position
     """)
-    
+
     columns_result = await db.execute(columns_query, {"table_name": table_name})
     columns = [row[0] for row in columns_result.fetchall()]
-    
+
     # Get total row count
     count_query = text(f'SELECT COUNT(*) FROM "{table_name}"')
     count_result = await db.execute(count_query)
     total_rows = count_result.scalar() or 0
-    
+
     # Get table data with pagination
     data_query = text(f'SELECT * FROM "{table_name}" LIMIT :limit OFFSET :offset')
     data_result = await db.execute(data_query, {"limit": limit, "offset": offset})
-    
+
     rows = []
     for row in data_result.fetchall():
         row_dict = {}
@@ -268,7 +267,7 @@ async def get_table_data(
                 value = str(value)
             row_dict[col] = value
         rows.append(row_dict)
-    
+
     return TableData(
         table_name=table_name,
         columns=columns,

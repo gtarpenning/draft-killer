@@ -4,8 +4,10 @@ Tests for the autonomous agent service.
 Tests the agent's ability to make tool calls and provide responses.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from app.services.agent_service import AgentService, get_agent_service
 from app.services.odds_api.service import OddsService
 
@@ -57,7 +59,7 @@ def mock_odds_service():
 async def test_agent_service_initialization(mock_odds_service):
     """Test that agent service initializes correctly."""
     service = AgentService(mock_odds_service)
-    
+
     assert service.odds_service == mock_odds_service
     assert service.agent is not None
     assert service.agent.name == "DraftKiller"
@@ -67,16 +69,16 @@ async def test_agent_service_initialization(mock_odds_service):
 async def test_get_response_basic(mock_odds_service):
     """Test basic response generation."""
     service = AgentService(mock_odds_service)
-    
+
     # Mock the Runner.run method
     with pytest.MonkeyPatch().context() as m:
         mock_result = MagicMock()
         mock_result.final_output = "Here are the current NFL odds..."
-        
+
         m.setattr("app.services.agent_service.Runner.run", AsyncMock(return_value=mock_result))
-        
+
         response = await service.get_response("What are the best NFL bets today?")
-        
+
         assert response == "Here are the current NFL odds..."
 
 
@@ -84,7 +86,7 @@ async def test_get_response_basic(mock_odds_service):
 async def test_stream_response_basic(mock_odds_service):
     """Test streaming response generation."""
     service = AgentService(mock_odds_service)
-    
+
     # Mock the Runner.run_streamed method
     with pytest.MonkeyPatch().context() as m:
         mock_chunks = [
@@ -93,17 +95,17 @@ async def test_stream_response_basic(mock_odds_service):
             MagicMock(content="the "),
             MagicMock(final_output="odds...")
         ]
-        
+
         async def mock_stream():
             for chunk in mock_chunks:
                 yield chunk
-        
+
         m.setattr("app.services.agent_service.Runner.run_streamed", mock_stream)
-        
+
         chunks = []
         async for chunk in service.stream_response("Show me NFL odds"):
             chunks.append(chunk)
-        
+
         assert len(chunks) > 0
         assert "".join(chunks).startswith("Here")
 
@@ -112,7 +114,7 @@ def test_get_agent_service_singleton(mock_odds_service):
     """Test that get_agent_service returns consistent instances."""
     service1 = get_agent_service(mock_odds_service)
     service2 = get_agent_service(mock_odds_service)
-    
+
     # Should return new instances each time (not singleton)
     assert service1 is not service2
     assert isinstance(service1, AgentService)
@@ -123,13 +125,13 @@ def test_get_agent_service_singleton(mock_odds_service):
 async def test_agent_service_error_handling(mock_odds_service):
     """Test error handling in agent service."""
     service = AgentService(mock_odds_service)
-    
+
     # Mock Runner.run to raise an exception
     with pytest.MonkeyPatch().context() as m:
         m.setattr("app.services.agent_service.Runner.run", AsyncMock(side_effect=Exception("Test error")))
-        
+
         response = await service.get_response("Test message")
-        
+
         assert "error" in response.lower()
         assert "test error" in response.lower()
 

@@ -2,7 +2,7 @@
 # Convenient commands for common development tasks
 # Using uv for blazing-fast Python package management 🚀
 
-.PHONY: help setup start start-backend start-frontend db-up db-down db-reset db-migrate db-connect install-backend install-frontend update-deps clean test test-backend test-verbose test-coverage test-fast test-health test-auth test-database test-inference test-chat test-odds
+.PHONY: help setup start start-backend start-frontend db-up db-down db-reset db-migrate db-connect install-backend install-frontend update-deps clean test test-backend test-verbose test-coverage test-fast test-health test-auth test-database test-inference test-chat test-odds lint lint-backend lint-frontend lint-fix format format-backend format-frontend check-all
 
 # Default target
 help:
@@ -38,6 +38,16 @@ help:
 	@echo "  make test-inference - Run inference tests only"
 	@echo "  make test-chat      - Run chat endpoint tests only"
 	@echo "  make test-odds      - Run odds API integration tests"
+	@echo ""
+	@echo "Linting & Formatting:"
+	@echo "  make lint           - Run all linters (backend + frontend)"
+	@echo "  make lint-backend   - Run Python linter (ruff)"
+	@echo "  make lint-frontend  - Run JavaScript/TypeScript linter (ESLint)"
+	@echo "  make lint-fix       - Fix auto-fixable linting issues"
+	@echo "  make format         - Format all code (black + prettier)"
+	@echo "  make format-backend - Format Python code (black)"
+	@echo "  make format-frontend- Format JavaScript/TypeScript (prettier)"
+	@echo "  make check-all      - Run all checks (lint + format + type-check)"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean          - Remove generated files and caches"
@@ -172,4 +182,58 @@ logs-backend:
 
 logs-frontend:
 	@echo "Frontend logs are in the terminal where you started it"
+
+# Linting & Formatting
+lint:
+	@echo "Running all linters..."
+	@$(MAKE) lint-backend
+	@$(MAKE) lint-frontend
+
+lint-backend:
+	@echo "Running Python linter (ruff)..."
+	cd backend && source .venv/bin/activate && ruff check app tests
+	@echo "✓ Python linting complete"
+
+lint-frontend:
+	@echo "Running JavaScript/TypeScript linter (ESLint)..."
+	cd frontend && npm run lint
+	@echo "✓ Frontend linting complete"
+
+lint-fix:
+	@echo "Fixing auto-fixable linting issues..."
+	@$(MAKE) lint-fix-backend
+	@$(MAKE) lint-fix-frontend
+
+lint-fix-backend:
+	@echo "Fixing Python linting issues..."
+	cd backend && source .venv/bin/activate && ruff check --fix --unsafe-fixes app tests
+	@echo "✓ Python linting fixes complete"
+
+lint-fix-frontend:
+	@echo "Fixing JavaScript/TypeScript linting issues..."
+	cd frontend && npm run lint:fix
+	@echo "✓ Frontend linting fixes complete"
+
+format:
+	@echo "Formatting all code..."
+	@$(MAKE) format-backend
+	@$(MAKE) format-frontend
+
+format-backend:
+	@echo "Formatting Python code with black..."
+	cd backend && source .venv/bin/activate && black app tests
+	@echo "✓ Python formatting complete"
+
+format-frontend:
+	@echo "Formatting JavaScript/TypeScript code with prettier..."
+	cd frontend && npm run format
+	@echo "✓ Frontend formatting complete"
+
+check-all:
+	@echo "Running all checks (lint + format + type-check)..."
+	@$(MAKE) lint
+	@$(MAKE) format
+	@echo "Running TypeScript type checking..."
+	cd frontend && npm run type-check
+	@echo "✓ All checks complete"
 

@@ -5,16 +5,11 @@ Provides async database session management using SQLAlchemy 2.0.
 Sessions are created per-request and automatically closed.
 """
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    create_async_engine,
-    async_sessionmaker
-)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
-
 
 # Create async engine
 engine = create_async_engine(
@@ -37,9 +32,9 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency for FastAPI endpoints to get a database session.
-    
+
     The session is automatically closed when the request completes.
-    
+
     Usage:
         @app.get("/users")
         async def get_users(db: AsyncSession = Depends(get_db)):
@@ -60,13 +55,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db() -> None:
     """
     Initialize the database.
-    
+
     This function can be used to create tables if they don't exist.
     In production, use Alembic migrations instead.
     """
-    from app.models.database import Base
-    
-    async with engine.begin() as conn:
+
+    async with engine.begin():
         # In development, you can uncomment this to auto-create tables
         # await conn.run_sync(Base.metadata.create_all)
         pass

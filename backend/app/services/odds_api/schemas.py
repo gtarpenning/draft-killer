@@ -4,9 +4,9 @@ Data models for The Odds API integration.
 Comprehensive schemas for all API endpoints with proper typing and validation.
 """
 
-from typing import List, Dict, Any, Optional, Union
-from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Any
+
+from pydantic import BaseModel
 
 
 class Sport(BaseModel):
@@ -23,15 +23,15 @@ class Outcome(BaseModel):
     """Betting outcome with odds and optional point spread."""
     name: str
     price: float
-    point: Optional[float] = None
-    description: Optional[str] = None
+    point: float | None = None
+    description: str | None = None
 
 
 class Market(BaseModel):
     """Betting market with outcomes."""
     key: str
-    last_update: Optional[str] = None
-    outcomes: List[Outcome]
+    last_update: str | None = None
+    outcomes: list[Outcome]
 
 
 class Bookmaker(BaseModel):
@@ -39,18 +39,18 @@ class Bookmaker(BaseModel):
     key: str
     title: str
     last_update: str
-    markets: List[Market]
+    markets: list[Market]
 
 
 class Event(BaseModel):
     """Sports event with bookmaker odds."""
     id: str
     sport_key: str
-    sport_title: Optional[str] = None
+    sport_title: str | None = None
     commence_time: str
     home_team: str
     away_team: str
-    bookmakers: List[Bookmaker]
+    bookmakers: list[Bookmaker]
 
 
 class Score(BaseModel):
@@ -67,15 +67,15 @@ class EventScore(BaseModel):
     completed: bool
     home_team: str
     away_team: str
-    scores: Optional[List[Score]] = None
-    last_update: Optional[str] = None
+    scores: list[Score] | None = None
+    last_update: str | None = None
 
 
 class HistoricalSnapshot(BaseModel):
     """Historical odds snapshot with timestamp info."""
     timestamp: str
-    previous_timestamp: Optional[str] = None
-    next_timestamp: Optional[str] = None
+    previous_timestamp: str | None = None
+    next_timestamp: str | None = None
     data: Event
 
 
@@ -83,7 +83,7 @@ class Participant(BaseModel):
     """Event participant information."""
     id: str
     name: str
-    name_display: Optional[str] = None
+    name_display: str | None = None
 
 
 class EventParticipants(BaseModel):
@@ -93,14 +93,14 @@ class EventParticipants(BaseModel):
     commence_time: str
     home_team: str
     away_team: str
-    participants: List[Participant]
+    participants: list[Participant]
 
 
 class OddsApiResponse(BaseModel):
     """Base response wrapper with usage tracking."""
-    requests_remaining: Optional[int] = None
-    requests_used: Optional[int] = None
-    requests_last_cost: Optional[int] = None
+    requests_remaining: int | None = None
+    requests_used: int | None = None
+    requests_last_cost: int | None = None
 
 
 class BookmakerComparison(BaseModel):
@@ -111,11 +111,11 @@ class BookmakerComparison(BaseModel):
     away_team: str
     commence_time: str
     bet_type: str
-    bet_details: Dict[str, Any]
-    bookmaker_odds: List[Dict[str, Any]]
-    best_odds: Optional[Dict[str, Any]] = None
-    worst_odds: Optional[Dict[str, Any]] = None
-    odds_range: Optional[float] = None
+    bet_details: dict[str, Any]
+    bookmaker_odds: list[dict[str, Any]]
+    best_odds: dict[str, Any] | None = None
+    worst_odds: dict[str, Any] | None = None
+    odds_range: float | None = None
 
 
 class ParlayLegComparison(BaseModel):
@@ -127,10 +127,10 @@ class ParlayLegComparison(BaseModel):
     home_team: str
     away_team: str
     commence_time: str
-    bookmaker_odds: List[Dict[str, Any]]
-    best_odds: Optional[Dict[str, Any]] = None
-    worst_odds: Optional[Dict[str, Any]] = None
-    odds_range: Optional[float] = None
+    bookmaker_odds: list[dict[str, Any]]
+    best_odds: dict[str, Any] | None = None
+    worst_odds: dict[str, Any] | None = None
+    odds_range: float | None = None
 
 
 class ApiError(BaseModel):

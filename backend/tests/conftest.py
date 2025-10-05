@@ -4,15 +4,15 @@ Pytest configuration and shared fixtures for all tests.
 Provides database, client, and common test utilities.
 """
 
+import asyncio
 import os
 import sys
+from collections.abc import AsyncGenerator
 from pathlib import Path
-import pytest
-import asyncio
-from typing import AsyncGenerator
 
+import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 # Add backend app to path
@@ -21,6 +21,7 @@ sys.path.insert(0, str(backend_dir))
 
 # Ensure .env is loaded for tests
 from dotenv import load_dotenv
+
 load_dotenv(backend_dir / ".env")
 
 # Set test environment variable for Weave
@@ -28,12 +29,12 @@ os.environ["WEAVE_TEST_MODE"] = "true"
 
 # Initialize Weave for testing using centralized configuration
 from app.core.weave_config import init_weave_for_tests
+
 init_weave_for_tests()
 
+from app.core.database import get_db
 from app.main import app
 from app.models.database import Base
-from app.core.database import get_db
-
 
 # ============================================================================
 # Test Database Configuration
@@ -66,7 +67,7 @@ def pytest_configure(config):
 def event_loop():
     """
     Create an event loop for the entire test session.
-    
+
     This ensures all async tests share the same event loop,
     which is more efficient and prevents issues with async fixtures.
     """
@@ -83,7 +84,7 @@ def event_loop():
 async def test_engine():
     """
     Create a test database engine.
-    
+
     Uses NullPool to avoid connection pooling issues in tests.
     """
     engine = create_async_engine(
@@ -91,18 +92,18 @@ async def test_engine():
         poolclass=NullPool,
         echo=False  # Set to True for SQL debugging
     )
-    
+
     # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-    
+
     yield engine
-    
+
     # Cleanup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    
+
     await engine.dispose()
 
 
@@ -110,7 +111,7 @@ async def test_engine():
 async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """
     Create a database session for a test.
-    
+
     Each test gets a fresh session with a transaction that's rolled back
     after the test completes, ensuring test isolation.
     """
@@ -120,20 +121,20 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
         class_=AsyncSession,
         expire_on_commit=False
     )
-    
+
     async with async_session() as session:
         async with session.begin():
             # Override the get_db dependency
             async def override_get_db():
                 yield session
-            
+
             app.dependency_overrides[get_db] = override_get_db
-            
+
             yield session
-            
+
             # Rollback after test
             await session.rollback()
-    
+
     # Clear overrides
     app.dependency_overrides.clear()
 
@@ -146,7 +147,7 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
 async def async_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
     Create an async HTTP client for testing API endpoints.
-    
+
     The client is configured to work with the test database session.
     """
     async with AsyncClient(app=app, base_url="http://test") as client:
@@ -161,28 +162,28 @@ async def async_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, 
 def check_dev_environment():
     """
     Check if dev environment is running before tests.
-    
+
     This fixture warns if certain services aren't available,
     but doesn't fail tests (some tests can run without external services).
     """
     print("\n" + "="*60)
     print("BACKEND TEST SUITE - Environment Check")
     print("="*60)
-    
+
     # Check database connection
     try:
         import asyncpg
         print("✅ asyncpg available")
     except ImportError:
         print("⚠️  asyncpg not installed - database tests will fail")
-    
+
     # Check if database is running
     db_url = os.getenv("DATABASE_URL")
     if db_url:
-        print(f"✅ DATABASE_URL configured")
+        print("✅ DATABASE_URL configured")
     else:
         print("⚠️  DATABASE_URL not set - using test database")
-    
+
     # Check Weave configuration
     weave_project = os.getenv("WEAVE_PROJECT")
     if weave_project:
@@ -190,14 +191,14 @@ def check_dev_environment():
         print(f"✅ Weave initialized for testing: {weave_project}-test")
     else:
         print("⚠️  WEAVE_PROJECT not set - inference tests will use mock data")
-    
+
     # Check Odds API
     odds_key = os.getenv("ODDS_API_KEY")
     if odds_key:
-        print(f"✅ ODDS_API_KEY configured")
+        print("✅ ODDS_API_KEY configured")
     else:
         print("⚠️  ODDS_API_KEY not set - odds tests will use mock data")
-    
+
     print("="*60)
     print("Starting tests...\n")
 

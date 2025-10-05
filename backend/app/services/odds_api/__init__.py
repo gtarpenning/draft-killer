@@ -6,18 +6,25 @@ Optimized for minimal API calls with intelligent caching and efficient data stru
 """
 
 from .client import OddsApiClient
-from .service import OddsService
 from .schemas import (
-    Sport, Event, Bookmaker, Market, Outcome, 
-    EventScore, HistoricalSnapshot, BookmakerComparison,
-    ParlayLegComparison, ApiError
+    ApiError,
+    Bookmaker,
+    BookmakerComparison,
+    Event,
+    EventScore,
+    HistoricalSnapshot,
+    Market,
+    Outcome,
+    ParlayLegComparison,
+    Sport,
 )
+from .service import OddsService
 
 __all__ = [
     "OddsApiClient",
-    "OddsService", 
+    "OddsService",
     "Sport",
-    "Event", 
+    "Event",
     "Bookmaker",
     "Market",
     "Outcome",

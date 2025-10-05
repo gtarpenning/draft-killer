@@ -5,20 +5,17 @@ This module handles the setup of the AsyncOpenAI client configured
 to use either OpenAI or W&B Inference API based on environment configuration.
 """
 
-from openai import AsyncOpenAI
-import weave
-
-from app.core.config import settings
-from app.services.llm_service.provider_config import (
-    provider_manager,
-    get_current_base_url,
-    get_current_api_key,
-    get_current_provider_config
-)
-
 # Initialize Weave for tracking/observability using centralized configuration
 import os
-from app.core.weave_config import init_weave_for_tests, init_weave_for_production
+
+from openai import AsyncOpenAI
+
+from app.core.weave_config import init_weave_for_production, init_weave_for_tests
+from app.services.llm_service.provider_config import (
+    get_current_api_key,
+    get_current_base_url,
+    get_current_provider_config,
+)
 
 if os.getenv("WEAVE_TEST_MODE") == "true":
     init_weave_for_tests()

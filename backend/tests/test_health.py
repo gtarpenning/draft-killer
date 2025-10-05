@@ -7,8 +7,8 @@ No external API calls or database dependencies.
 
 import pytest
 from httpx import AsyncClient
-from app.main import app
 
+from app.main import app
 
 # ============================================================================
 # Health Check Tests
@@ -19,7 +19,7 @@ async def test_health_endpoint_returns_200():
     """Test that health endpoint returns 200 OK."""
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get("/api/health")
-    
+
     assert response.status_code == 200
 
 
@@ -28,9 +28,9 @@ async def test_health_endpoint_structure():
     """Test that health endpoint returns expected data structure."""
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get("/api/health")
-    
+
     data = response.json()
-    
+
     assert "status" in data
     assert "version" in data
     assert "environment" in data
@@ -41,7 +41,7 @@ async def test_health_endpoint_status_healthy():
     """Test that health endpoint reports healthy status."""
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get("/api/health")
-    
+
     data = response.json()
     assert data["status"] == "healthy"
 
@@ -51,7 +51,7 @@ async def test_health_endpoint_version_format():
     """Test that version is a non-empty string."""
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get("/api/health")
-    
+
     data = response.json()
     assert isinstance(data["version"], str)
     assert len(data["version"]) > 0
@@ -62,7 +62,7 @@ async def test_health_endpoint_environment_valid():
     """Test that environment is set to valid value."""
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get("/api/health")
-    
+
     data = response.json()
     assert data["environment"] in ["development", "staging", "production"]
 
@@ -73,7 +73,7 @@ async def test_health_endpoint_no_auth_required():
     # Should work without any Authorization header
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get("/api/health")
-    
+
     assert response.status_code == 200
 
 
@@ -81,12 +81,12 @@ async def test_health_endpoint_no_auth_required():
 async def test_health_endpoint_response_time():
     """Test that health endpoint responds quickly."""
     import time
-    
+
     async with AsyncClient(app=app, base_url="http://test") as client:
         start = time.time()
         response = await client.get("/api/health")
         elapsed = time.time() - start
-    
+
     assert response.status_code == 200
     assert elapsed < 0.5  # Should respond in under 500ms
 

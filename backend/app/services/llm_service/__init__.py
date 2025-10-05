@@ -14,15 +14,15 @@ This package is organized into:
 
 # Export public API
 from .model import ParlayAnalyzer
-from .service import (
-    analyze_parlay,
-    stream_parlay_analysis,
-    get_conversation_context,
-)
 from .prompts import (
     SYSTEM_PROMPT,
     create_user_prompt,
     get_system_prompt,
+)
+from .service import (
+    analyze_parlay,
+    get_conversation_context,
+    stream_parlay_analysis,
 )
 
 __all__ = [

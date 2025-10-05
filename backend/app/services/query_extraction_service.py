@@ -6,50 +6,51 @@ enabling intelligent odds fetching and analysis.
 """
 
 import json
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 import openai
 
 from app.core.config import settings
 from app.models.schemas import (
-    BettingQuery,
+    ApiQueryType,
     BettingIntent,
+    BettingQuery,
     EntityType,
     ExtractedEntity,
     SuggestedApiQuery,
-    ApiQueryType,
 )
 
 
 class QueryExtractionService:
     """
     Service for extracting structured betting queries from natural language using LLM.
-    
+
     This service is the first stage in our two-stage pipeline:
     1. Extract intent and entities from user message
     2. Fetch relevant odds based on extracted queries
     """
-    
-    def __init__(self, api_key: Optional[str] = None):
+
+    def __init__(self, api_key: str | None = None):
         """
         Initialize the query extraction service.
-        
+
         Args:
             api_key: OpenAI API key (defaults to settings.OPENAI_API_KEY)
         """
         self.api_key = api_key or settings.OPENAI_API_KEY
         if not self.api_key:
             raise ValueError("OpenAI API key is required for query extraction")
-        
+
         self.client = openai.OpenAI(api_key=self.api_key)
         self.model = "gpt-4o-mini"  # Fast and cost-effective for extraction
-        
+
         # Sport detection mappings (player/team → sport)
         self._sport_mappings = self._build_sport_mappings()
-    
-    def _build_sport_mappings(self) -> Dict[str, str]:
+
+    def _build_sport_mappings(self) -> dict[str, str]:
         """
         Build mappings of well-known teams/players to sports.
-        
+
         This is used for quick lookups before resorting to LLM.
         """
         return {
@@ -66,7 +67,7 @@ class QueryExtractionService:
             "eagles": "americanfootball_nfl",
             "bills": "americanfootball_nfl",
             "bengals": "americanfootball_nfl",
-            
+
             # MLB Players (examples)
             "aaron judge": "baseball_mlb",
             "shohei ohtani": "baseball_mlb",
@@ -74,7 +75,7 @@ class QueryExtractionService:
             "yankees": "baseball_mlb",
             "dodgers": "baseball_mlb",
             "red sox": "baseball_mlb",
-            
+
             # NBA Teams (examples)
             "lakers": "basketball_nba",
             "warriors": "basketball_nba",
@@ -82,28 +83,28 @@ class QueryExtractionService:
             "lebron": "basketball_nba",
             "curry": "basketball_nba",
         }
-    
+
     async def extract_betting_intent(
         self,
         message: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: list[dict[str, Any]] | None = None
     ) -> BettingQuery:
         """
         Extract structured betting intent from a user message.
-        
+
         Uses OpenAI GPT-4o-mini with JSON mode for fast, structured extraction.
-        
+
         Args:
             message: User's message
             conversation_history: Optional previous messages for context
-            
+
         Returns:
             Structured BettingQuery with intent, entities, and suggested API queries
         """
         # Build the extraction prompt
         system_prompt = self._get_extraction_system_prompt()
         user_prompt = self._format_extraction_prompt(message, conversation_history)
-        
+
         try:
             # Call OpenAI with JSON mode
             response = self.client.chat.completions.create(
@@ -116,18 +117,18 @@ class QueryExtractionService:
                 temperature=0.1,  # Low temperature for consistent extraction
                 max_tokens=1000,
             )
-            
+
             # Parse the JSON response
             result = json.loads(response.choices[0].message.content)
-            
+
             # Convert to BettingQuery object
             return self._parse_extraction_result(result, message)
-            
+
         except Exception as e:
             # If extraction fails, return a safe fallback
             print(f"Query extraction failed: {e}")
             return self._create_fallback_query(message)
-    
+
     def _get_extraction_system_prompt(self) -> str:
         """Get the system prompt for query extraction."""
         return """You are a betting query parser. Your job is to extract structured information from user messages about sports betting.
@@ -183,15 +184,15 @@ IMPORTANT: Always return valid JSON matching this schema:
   ],
   "reasoning": "brief explanation of your extraction"
 }"""
-    
+
     def _format_extraction_prompt(
         self,
         message: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: list[dict[str, Any]] | None = None
     ) -> str:
         """Format the user prompt for extraction."""
         prompt_parts = []
-        
+
         # Add conversation history if available
         if conversation_history and len(conversation_history) > 0:
             prompt_parts.append("Previous conversation context:")
@@ -200,15 +201,15 @@ IMPORTANT: Always return valid JSON matching this schema:
                 content = msg.get('content', '')[:200]  # Truncate long messages
                 prompt_parts.append(f"{role.upper()}: {content}")
             prompt_parts.append("")
-        
+
         # Add current message
         prompt_parts.append(f"Current user message: {message}")
         prompt_parts.append("")
         prompt_parts.append("Extract the betting intent and return JSON:")
-        
+
         return "\n".join(prompt_parts)
-    
-    def _parse_extraction_result(self, result: Dict[str, Any], original_message: str) -> BettingQuery:
+
+    def _parse_extraction_result(self, result: dict[str, Any], original_message: str) -> BettingQuery:
         """Parse the LLM's extraction result into a BettingQuery object."""
         try:
             # Parse entities
@@ -220,7 +221,7 @@ IMPORTANT: Always return valid JSON matching this schema:
                     sport_inferred=ent.get("sport_inferred"),
                     confidence=ent.get("confidence", 1.0)
                 ))
-            
+
             # Parse suggested queries
             suggested_queries = []
             for query in result.get("suggested_queries", []):
@@ -232,7 +233,7 @@ IMPORTANT: Always return valid JSON matching this schema:
                     market=query.get("market"),
                     params=query.get("params", {})
                 ))
-            
+
             # Create BettingQuery
             return BettingQuery(
                 intent=BettingIntent(result["intent"]),
@@ -242,20 +243,20 @@ IMPORTANT: Always return valid JSON matching this schema:
                 suggested_queries=suggested_queries,
                 reasoning=result.get("reasoning")
             )
-            
+
         except Exception as e:
             print(f"Failed to parse extraction result: {e}")
             return self._create_fallback_query(original_message)
-    
+
     def _create_fallback_query(self, message: str) -> BettingQuery:
         """
         Create a fallback query when extraction fails.
-        
+
         Does basic heuristic parsing as a backup.
         """
         # Check for common patterns
         message_lower = message.lower()
-        
+
         # Check if asking for suggestions
         if any(word in message_lower for word in ["suggest", "good parlay", "recommend", "what should"]):
             intent = BettingIntent.REQUEST_SUGGESTIONS
@@ -282,7 +283,7 @@ IMPORTANT: Always return valid JSON matching this schema:
             intent = BettingIntent.GENERAL_QUESTION
             sport = None
             suggested_queries = []
-        
+
         return BettingQuery(
             intent=intent,
             sport=sport,
@@ -291,20 +292,20 @@ IMPORTANT: Always return valid JSON matching this schema:
             suggested_queries=suggested_queries,
             reasoning="Fallback extraction due to LLM failure"
         )
-    
-    def _detect_sport_from_text(self, text: str) -> Optional[str]:
+
+    def _detect_sport_from_text(self, text: str) -> str | None:
         """
         Detect sport from text using keyword matching.
-        
+
         This is a simple fallback when LLM extraction fails.
         """
         text_lower = text.lower()
-        
+
         # Check sport mappings
         for keyword, sport in self._sport_mappings.items():
             if keyword in text_lower:
                 return sport
-        
+
         # Check explicit sport mentions
         if "nfl" in text_lower or "football" in text_lower:
             return "americanfootball_nfl"
@@ -314,7 +315,7 @@ IMPORTANT: Always return valid JSON matching this schema:
             return "basketball_nba"
         elif "nhl" in text_lower or "hockey" in text_lower:
             return "icehockey_nhl"
-        
+
         # Default to NFL if nothing detected
         return None
 
@@ -324,15 +325,15 @@ IMPORTANT: Always return valid JSON matching this schema:
 # ============================================================================
 
 # Global query extraction service instance
-_query_extraction_service: Optional[QueryExtractionService] = None
+_query_extraction_service: QueryExtractionService | None = None
 
 
 def get_query_extraction_service() -> QueryExtractionService:
     """
     Get or create the global query extraction service instance.
-    
+
     This is used as a FastAPI dependency.
-    
+
     Returns:
         Singleton QueryExtractionService instance
     """

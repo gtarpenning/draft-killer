@@ -7,20 +7,14 @@ Defines the core database schema:
 - Message: Individual chat messages (user and assistant)
 """
 
-from datetime import datetime
-from typing import List
-import uuid
-
-from sqlalchemy import (
-    String,
-    DateTime,
-    Text,
-    ForeignKey,
-    Enum as SQLEnum
-)
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import enum
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -31,15 +25,15 @@ class Base(DeclarativeBase):
 class User(Base):
     """
     User model for authentication and profile data.
-    
+
     Stores user credentials and metadata. Passwords are never stored
     in plain text - only bcrypt hashes are persisted.
-    
+
     Relationships:
         - conversations: All conversations created by this user
     """
     __tablename__ = "users"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -74,14 +68,14 @@ class User(Base):
         DateTime,
         nullable=True
     )
-    
+
     # Relationships
-    conversations: Mapped[List["Conversation"]] = relationship(
+    conversations: Mapped[list["Conversation"]] = relationship(
         "Conversation",
         back_populates="user",
         cascade="all, delete-orphan"
     )
-    
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
 
@@ -89,17 +83,17 @@ class User(Base):
 class Conversation(Base):
     """
     Conversation model for organizing chat sessions.
-    
+
     Each conversation represents a distinct chat session with the AI.
     Conversations contain multiple messages and can be titled for
     easy identification.
-    
+
     Relationships:
         - user: The user who owns this conversation
         - messages: All messages in this conversation
     """
     __tablename__ = "conversations"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -126,19 +120,19 @@ class Conversation(Base):
         onupdate=datetime.utcnow,
         nullable=False
     )
-    
+
     # Relationships
     user: Mapped["User"] = relationship(
         "User",
         back_populates="conversations"
     )
-    messages: Mapped[List["Message"]] = relationship(
+    messages: Mapped[list["Message"]] = relationship(
         "Message",
         back_populates="conversation",
         cascade="all, delete-orphan",
         order_by="Message.created_at"
     )
-    
+
     def __repr__(self) -> str:
         return f"<Conversation(id={self.id}, title={self.title})>"
 
@@ -152,19 +146,19 @@ class MessageRole(str, enum.Enum):
 class Message(Base):
     """
     Message model for chat messages.
-    
+
     Stores individual messages within a conversation. Each message
     has a role (user or assistant) and can include metadata such as
     token counts, model information, and processing costs.
-    
+
     The message_metadata field uses JSONB for flexible storage of additional
     information without requiring schema changes.
-    
+
     Relationships:
         - conversation: The conversation this message belongs to
     """
     __tablename__ = "messages"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -195,13 +189,13 @@ class Message(Base):
         nullable=False,
         index=True
     )
-    
+
     # Relationships
     conversation: Mapped["Conversation"] = relationship(
         "Conversation",
         back_populates="messages"
     )
-    
+
     def __repr__(self) -> str:
         content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
         return f"<Message(id={self.id}, role={self.role}, content='{content_preview}')>"
@@ -210,15 +204,15 @@ class Message(Base):
 class UsageRecord(Base):
     """
     Usage tracking model for both authenticated and anonymous users.
-    
+
     Tracks API usage for rate limiting and analytics.
     Anonymous users are tracked by a session identifier (cookie + user-agent hash).
-    
+
     Relationships:
         - user: Optional link to authenticated user
     """
     __tablename__ = "usage_records"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -253,10 +247,10 @@ class UsageRecord(Base):
         nullable=False,
         index=True
     )
-    
+
     # Relationships
     user: Mapped["User | None"] = relationship("User")
-    
+
     def __repr__(self) -> str:
         identifier = f"user_id={self.user_id}" if self.user_id else f"session_id={self.session_id}"
         return f"<UsageRecord(id={self.id}, {identifier}, endpoint={self.endpoint})>"
